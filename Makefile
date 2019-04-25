@@ -23,4 +23,4 @@ clean: stop
 
 dev:
 	@echo "=============starting api in development mode============="
-	compileDaemon -command="./book-api"
+	compileDaemon -command="./book-api" -color
