@@ -1,7 +1,6 @@
 package main
 
 import (
-	// "fmt"
 	"context"
 	"encoding/json"
 	"log"
@@ -11,6 +10,11 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+
+	"database/sql"
+
+	"github.com/lib/pq"
+	"github.com/subosito/gotenv"
 
 	"github.com/gorilla/mux"
 )
@@ -23,17 +27,34 @@ type book struct {
 }
 
 var books []book
+var db *sql.DB
+
+func init() {
+	gotenv.Load()
+}
+
+func logFatal(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func setupDatabaseConnection() {
+	dbURL, err := pq.ParseURL(os.Getenv("DATABASE_URL"))
+	logFatal(err)
+
+	db, err = sql.Open("postgres", dbURL)
+	logFatal(err)
+
+	err = db.Ping()
+	logFatal(err)
+}
 
 func main() {
+	setupDatabaseConnection()
+
 	router := mux.NewRouter()
 	port := ":7000"
-
-	books = append(books,
-		book{ID: 1, Title: "Golang pointers", Author: "Mr Golang", Year: "2000"},
-		book{ID: 2, Title: "Golang pointers", Author: "Mr Golang", Year: "2000"},
-		book{ID: 3, Title: "Golang pointers", Author: "Mr Golang", Year: "2000"},
-		book{ID: 4, Title: "Golang pointers", Author: "Mr Golang", Year: "2000"},
-		book{ID: 5, Title: "Golang pointers", Author: "Mr Golang", Year: "2000"})
 
 	router.HandleFunc("/books", getBooks).Methods("GET")
 	router.HandleFunc("/books/{id}", getBook).Methods("GET")
@@ -52,7 +73,7 @@ func main() {
 	func() {
 		log.Println("Starting Server on port", port)
 		if err := server.ListenAndServe(); err != nil {
-			log.Fatal(err)
+			logFatal(err)
 		}
 	}()
 
@@ -76,13 +97,29 @@ func handleShutdown(server *http.Server) {
 	os.Exit(0)
 }
 
-func getBooks(w http.ResponseWriter, r *http.Request) {
+func getBooks(w http.ResponseWriter, req *http.Request) {
+	var bookCopy book
+
+	books = []book{}
+
+	rows, err := db.Query("select * from books")
+	logFatal(err)
+
+	defer rows.Close()
+
+	for rows.Next() {
+		err := rows.Scan(&bookCopy.ID, &bookCopy.Title, &bookCopy.Author, &bookCopy.Year)
+		logFatal(err)
+
+		books = append(books, bookCopy)
+	}
+
 	json.NewEncoder(w).Encode(books)
 	log.Println("Get all books")
 }
 
-func getBook(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
+func getBook(w http.ResponseWriter, req *http.Request) {
+	params := mux.Vars(req)
 	parsedID, _ := strconv.Atoi(params["id"])
 
 	for _, book := range books {
@@ -93,10 +130,10 @@ func getBook(w http.ResponseWriter, r *http.Request) {
 	log.Println("Get a book", params)
 }
 
-func addBook(w http.ResponseWriter, r *http.Request) {
+func addBook(w http.ResponseWriter, req *http.Request) {
 	var newBook book
 
-	json.NewDecoder(r.Body).Decode(&newBook)
+	json.NewDecoder(req.Body).Decode(&newBook)
 	newBook.ID = len(books) + 1
 
 	books = append(books, newBook)
@@ -105,15 +142,15 @@ func addBook(w http.ResponseWriter, r *http.Request) {
 	log.Println("Add a new book", books, newBook)
 }
 
-func updateBook(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
+func updateBook(w http.ResponseWriter, req *http.Request) {
+	params := mux.Vars(req)
 	parsedID, _ := strconv.Atoi(params["id"])
 
 	var updateValues book
 
 	updateValues.ID = parsedID
 
-	json.NewDecoder(r.Body).Decode(&updateValues)
+	json.NewDecoder(req.Body).Decode(&updateValues)
 
 	log.Println("its length", len(books)-1)
 
@@ -127,8 +164,8 @@ func updateBook(w http.ResponseWriter, r *http.Request) {
 	log.Println("Update a book", updateValues, parsedID)
 }
 
-func removeBook(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
+func removeBook(w http.ResponseWriter, req *http.Request) {
+	params := mux.Vars(req)
 	parseID, _ := strconv.Atoi(params["id"])
 
 	for index, book := range books {
