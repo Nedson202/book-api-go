@@ -1,0 +1,10 @@
+# github.com/gorilla/mux v1.7.1
+github.com/gorilla/mux
+# github.com/lib/pq v1.1.0
+github.com/lib/pq
+github.com/lib/pq/oid
+github.com/lib/pq/scram
+# github.com/nedson202/book-api-go v0.0.0-20190426104416-baa760bb4f73
+github.com/nedson202/book-api-go/models
+# github.com/subosito/gotenv v1.1.1
+github.com/subosito/gotenv
