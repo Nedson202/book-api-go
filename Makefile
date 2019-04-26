@@ -23,4 +23,4 @@ clean: stop
 
 dev:
 	@echo "=============starting api in development mode============="
-	compileDaemon -command="./book-api" -color -graceful-kill
+	compileDaemon -build="go build -o bin/book-api-go ." -command="./bin/book-api-go" -color -graceful-kill

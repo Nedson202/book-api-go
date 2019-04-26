@@ -18,6 +18,7 @@ import (
 	"github.com/nedson202/book-api-go/driver"
 	"github.com/nedson202/book-api-go/config"
 	"github.com/nedson202/book-api-go/routes"
+	"github.com/nedson202/book-api-go/database"
 )
 
 var db *sql.DB
@@ -28,6 +29,7 @@ func init() {
 
 func main() {
 	db = driver.SetupDatabaseConnection()
+	database.MigrateDatabaseTables(db)
 
 	router := routes.NewRouter(db)
 	
