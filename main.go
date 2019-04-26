@@ -2,68 +2,43 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
 	"database/sql"
 
-	"github.com/lib/pq"
 	"github.com/subosito/gotenv"
 
-	"github.com/gorilla/mux"
+	"github.com/gorilla/handlers"
+
+	"github.com/nedson202/book-api-go/driver"
+	"github.com/nedson202/book-api-go/config"
+	"github.com/nedson202/book-api-go/routes"
 )
 
-type book struct {
-	ID     int    `json:"id"`
-	Title  string `json:"title"`
-	Author string `json:"author"`
-	Year   string `json:"year"`
-}
-
-var books []book
 var db *sql.DB
 
 func init() {
 	gotenv.Load()
 }
 
-func logFatal(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func setupDatabaseConnection() {
-	dbURL, err := pq.ParseURL(os.Getenv("DATABASE_URL"))
-	logFatal(err)
-
-	db, err = sql.Open("postgres", dbURL)
-	logFatal(err)
-
-	err = db.Ping()
-	logFatal(err)
-}
-
 func main() {
-	setupDatabaseConnection()
+	db = driver.SetupDatabaseConnection()
 
-	router := mux.NewRouter()
+	router := routes.NewRouter(db)
+	
+	allowedOrigins := handlers.AllowedOrigins([]string{"*"}) 
+  allowedMethods := handlers.AllowedMethods([]string{"GET", "POST", "DELETE", "PUT"})
+	
 	port := ":7000"
 
-	router.HandleFunc("/books", getBooks).Methods("GET")
-	router.HandleFunc("/books/{id}", getBook).Methods("GET")
-	router.HandleFunc("/books", addBook).Methods("POST")
-	router.HandleFunc("/books/{id}", updateBook).Methods("PUT")
-	router.HandleFunc("/books/{id}", removeBook).Methods("DELETE")
-
 	server := &http.Server{
-		Handler:      router,
+		// launch server with CORS validations
+		Handler:      handlers.CORS(allowedOrigins, allowedMethods)(router),
 		Addr:         port,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
@@ -71,9 +46,9 @@ func main() {
 
 	// Start Server
 	func() {
-		log.Println("Starting Server on port", port)
+		log.Println("Starting Server on http://localhost:7000")
 		if err := server.ListenAndServe(); err != nil {
-			logFatal(err)
+			config.LogFatal(err)
 		}
 	}()
 
@@ -95,85 +70,4 @@ func handleShutdown(server *http.Server) {
 
 	log.Println("Shutting down")
 	os.Exit(0)
-}
-
-func getBooks(w http.ResponseWriter, req *http.Request) {
-	var bookCopy book
-
-	books = []book{}
-
-	rows, err := db.Query("select * from books")
-	logFatal(err)
-
-	defer rows.Close()
-
-	for rows.Next() {
-		err := rows.Scan(&bookCopy.ID, &bookCopy.Title, &bookCopy.Author, &bookCopy.Year)
-		logFatal(err)
-
-		books = append(books, bookCopy)
-	}
-
-	json.NewEncoder(w).Encode(books)
-	log.Println("Get all books")
-}
-
-func getBook(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
-
-	var bookCopy book
-
-	rows := db.QueryRow("select * from books where id=$1", params["id"])
-
-	err := rows.Scan(&bookCopy.ID, &bookCopy.Title, &bookCopy.Author, &bookCopy.Year)
-	logFatal(err)
-
-	json.NewEncoder(w).Encode(bookCopy)
-	log.Println("Get a book", params)
-}
-
-func addBook(w http.ResponseWriter, req *http.Request) {
-	var newBook book
-	var bookID int
-
-	json.NewDecoder(req.Body).Decode(&newBook)
-	log.Println("Add a", bookID, newBook)
-
-	err := db.QueryRow("insert into books (title, author, year) values ($1, $2, $3) RETURNING id;",
-		newBook.Title, newBook.Author, newBook.Year).Scan(&newBook.ID)
-
-	logFatal(err)
-	json.NewEncoder(w).Encode(newBook)
-	log.Println("Add a new book", bookID, newBook)
-}
-
-func updateBook(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
-	parsedID, _ := strconv.Atoi(params["id"])
-
-	var updateValues book
-
-	updateValues.ID = parsedID
-
-	json.NewDecoder(req.Body).Decode(&updateValues)
-
-	result, err := db.Exec("update books set title=$1, author=$2, year=$3 where id=$4 Returning id;",
-		updateValues.Title, updateValues.Author, updateValues.Year, params["id"])
-
-	rowsUpdated, err := result.RowsAffected()
-	logFatal(err)
-
-	json.NewEncoder(w).Encode(rowsUpdated)
-	log.Println("Update a book", updateValues, parsedID)
-}
-
-func removeBook(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
-
-	result, err := db.Exec("delete from books where id = $1", params["id"])
-
-	rowsDeleted, err := result.RowsAffected()
-	logFatal(err)
-
-	json.NewEncoder(w).Encode(rowsDeleted)
 }
