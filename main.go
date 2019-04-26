@@ -120,26 +120,31 @@ func getBooks(w http.ResponseWriter, req *http.Request) {
 
 func getBook(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
-	parsedID, _ := strconv.Atoi(params["id"])
 
-	for _, book := range books {
-		if book.ID == parsedID {
-			json.NewEncoder(w).Encode(&book)
-		}
-	}
+	var bookCopy book
+
+	rows := db.QueryRow("select * from books where id=$1", params["id"])
+
+	err := rows.Scan(&bookCopy.ID, &bookCopy.Title, &bookCopy.Author, &bookCopy.Year)
+	logFatal(err)
+
+	json.NewEncoder(w).Encode(bookCopy)
 	log.Println("Get a book", params)
 }
 
 func addBook(w http.ResponseWriter, req *http.Request) {
 	var newBook book
+	var bookID int
 
 	json.NewDecoder(req.Body).Decode(&newBook)
-	newBook.ID = len(books) + 1
+	log.Println("Add a", bookID, newBook)
 
-	books = append(books, newBook)
+	err := db.QueryRow("insert into books (title, author, year) values ($1, $2, $3) RETURNING id;",
+		newBook.Title, newBook.Author, newBook.Year).Scan(&newBook.ID)
 
+	logFatal(err)
 	json.NewEncoder(w).Encode(newBook)
-	log.Println("Add a new book", books, newBook)
+	log.Println("Add a new book", bookID, newBook)
 }
 
 func updateBook(w http.ResponseWriter, req *http.Request) {
@@ -152,27 +157,23 @@ func updateBook(w http.ResponseWriter, req *http.Request) {
 
 	json.NewDecoder(req.Body).Decode(&updateValues)
 
-	log.Println("its length", len(books)-1)
+	result, err := db.Exec("update books set title=$1, author=$2, year=$3 where id=$4 Returning id;",
+		updateValues.Title, updateValues.Author, updateValues.Year, params["id"])
 
-	for index, book := range books {
-		if book.ID == parsedID {
-			books[index] = updateValues
-		}
-	}
+	rowsUpdated, err := result.RowsAffected()
+	logFatal(err)
 
-	json.NewEncoder(w).Encode(updateValues)
+	json.NewEncoder(w).Encode(rowsUpdated)
 	log.Println("Update a book", updateValues, parsedID)
 }
 
 func removeBook(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
-	parseID, _ := strconv.Atoi(params["id"])
 
-	for index, book := range books {
-		if book.ID == parseID {
-			books = append(books[:index], books[index+1:]...)
-		}
-	}
-	json.NewEncoder(w).Encode(books)
-	log.Println("Remove a book", books, parseID)
+	result, err := db.Exec("delete from books where id = $1", params["id"])
+
+	rowsDeleted, err := result.RowsAffected()
+	logFatal(err)
+
+	json.NewEncoder(w).Encode(rowsDeleted)
 }
