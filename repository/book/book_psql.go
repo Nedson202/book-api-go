@@ -6,13 +6,17 @@ import (
 
 	"github.com/nedson202/book-api-go/config"
 	"github.com/nedson202/book-api-go/models"
+	"github.com/nedson202/book-api-go/driver"
 )
 
 type BookRepository struct{}
 
-var db *sql.DB
+var books []models.BookSchema
 
-func (b BookRepository) GetBooks(db *sql.DB, book models.BookSchema, books []models.BookSchema) []models.BookSchema {
+var db *sql.DB 
+
+func (b BookRepository) GetBooks(book models.BookSchema) []models.BookSchema {
+	db = driver.DB
 	rows, err := db.Query("select * from books")
 	config.LogFatal(err)
 
@@ -28,7 +32,8 @@ func (b BookRepository) GetBooks(db *sql.DB, book models.BookSchema, books []mod
 	return books
 }
 
-func (b BookRepository) GetBook(db *sql.DB, book models.BookSchema, id int) (models.BookSchema) {
+func (b BookRepository) GetBook(book models.BookSchema, id int) (models.BookSchema) {
+	db = driver.DB
 	rows := db.QueryRow("select * from books where id=$1", id)
 
 	err := rows.Scan(&book.ID, &book.Title, &book.Author, &book.Year)
@@ -45,7 +50,8 @@ func (b BookRepository) GetBook(db *sql.DB, book models.BookSchema, id int) (mod
 	return book
 }
 
-func (b BookRepository) AddBook(db *sql.DB, newBook models.BookSchema) models.BookSchema {
+func (b BookRepository) AddBook(newBook models.BookSchema) models.BookSchema {
+	db = driver.DB
 	err := db.QueryRow("insert into books (title, author, year) values ($1, $2, $3) RETURNING id;",
 	newBook.Title, newBook.Author, newBook.Year).Scan(&newBook.ID)
 
@@ -53,7 +59,8 @@ func (b BookRepository) AddBook(db *sql.DB, newBook models.BookSchema) models.Bo
 	return newBook
 }
 
-func (b BookRepository) UpdateBook(db *sql.DB, updateValues models.BookSchema, id int) int64 {
+func (b BookRepository) UpdateBook(updateValues models.BookSchema, id int) int64 {
+	db = driver.DB
 	result, err := db.Exec("update books set title=$1, author=$2, year=$3 where id=$4 Returning id;",
 		updateValues.Title, updateValues.Author, updateValues.Year, id)
 
@@ -63,7 +70,8 @@ func (b BookRepository) UpdateBook(db *sql.DB, updateValues models.BookSchema, i
 	return rowsUpdated
 }
 
-func (b BookRepository) RemoveBook(db *sql.DB, id int) int64 {
+func (b BookRepository) RemoveBook(id int) int64 {
+	db = driver.DB
 	result, err := db.Exec("delete from books where id = $1", id)
 
 	rowsDeleted, err := result.RowsAffected()

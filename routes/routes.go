@@ -5,45 +5,43 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"database/sql"
-
 	"github.com/nedson202/book-api-go/config"
 	"github.com/nedson202/book-api-go/controllers"
 )
 
 var controller = controllers.Controller{}
 
-func getRoutes(db *sql.DB) Routes {
+func getRoutes() Routes {
 	var routes = Routes{
 		Route{
 			"GetBooks",
 			"GET",
 			"/books",
-			controller.GetBooks(db),
+			controller.GetBooks(),
 		},
 		Route{
 			"GetBook",
 			"GET",
 			"/books/{id}",
-			controller.GetBook(db),
+			controller.GetBook(),
 		},
 		Route{
 			"AddBook",
 			"POST",
 			"/books",
-			controller.AddBook(db),
+			controller.AddBook(),
 		},
 		Route{
 			"UpdateBook",
 			"PUT",
 			"/books/{id}",
-			controller.UpdateBook(db),
+			controller.UpdateBook(),
 		},
 		Route{
 			"DeleteBook",
 			"DELETE",
 			"/books{id}",
-			controller.RemoveBook(db),
+			controller.RemoveBook(),
 		},
 	}
 
@@ -51,9 +49,9 @@ func getRoutes(db *sql.DB) Routes {
 }
 
 //NewRouter configures a new router to the API
-func NewRouter(db *sql.DB) *mux.Router {
+func NewRouter() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
-	routes := getRoutes(db)
+	routes := getRoutes()
 	for _, route := range routes {
 		var handler http.Handler
 		handler = route.HandlerFunc
