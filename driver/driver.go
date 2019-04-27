@@ -1,32 +1,25 @@
 package driver
 
 import (
-	"log"
+	"database/sql"
 	"os"
 
-	"database/sql"
-
 	"github.com/lib/pq"
+	"github.com/nedson202/book-api-go/config"
 )
 
 var db *sql.DB
 
-func logFatal(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 // SetupDatabaseConnection with sql and postgres
 func SetupDatabaseConnection() *sql.DB {
 	dbURL, err := pq.ParseURL(os.Getenv("DATABASE_URL"))
-	logFatal(err)
+	config.LogFatal(err)
 
 	db, err = sql.Open("postgres", dbURL)
-	logFatal(err)
+	config.LogFatal(err)
 
 	err = db.Ping()
-	logFatal(err)
+	config.LogFatal(err)
 
 	return db
 }
