@@ -28,10 +28,10 @@ func init() {
 }
 
 func main() {
-	db = driver.SetupDatabaseConnection()
+	db = driver.DB
 	database.MigrateDatabaseTables(db)
 
-	router := routes.NewRouter(db)
+	router := routes.NewRouter()
 	
 	allowedOrigins := handlers.AllowedOrigins([]string{"*"}) 
   allowedMethods := handlers.AllowedMethods([]string{"GET", "POST", "DELETE", "PUT"})

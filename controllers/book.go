@@ -2,13 +2,10 @@ package controllers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
-
-	"database/sql"
 
 	"github.com/nedson202/book-api-go/config"
 	"github.com/nedson202/book-api-go/models"
@@ -23,22 +20,19 @@ type Controller struct{}
 var bookRepo = bookRepository.BookRepository{}
 
 // GetBooks controller
-func (c Controller) GetBooks(db *sql.DB) http.HandlerFunc {
+func (c Controller) GetBooks() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		var book models.BookSchema
 
-		books = []models.BookSchema{}
-
-		books = bookRepo.GetBooks(db, book, books)
+		books = bookRepo.GetBooks(book)
 
 		config.RespondWithJSON(w, http.StatusOK, books)
 	}
 }
 
 // GetBook controller to retrieve a book from db
-func (c Controller) GetBook(db *sql.DB) http.HandlerFunc {
+func (c Controller) GetBook() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		log.Println("Get a book here now")
 		params := mux.Vars(req)
 
 		id, err := strconv.Atoi(params["id"])
@@ -46,7 +40,7 @@ func (c Controller) GetBook(db *sql.DB) http.HandlerFunc {
 
 		var book models.BookSchema
 
-		book = bookRepo.GetBook(db, book, id)
+		book = bookRepo.GetBook(book, id)
 
 		if book.ID == 0 {
 			config.RespondWithError(w, http.StatusNotFound, "No match found for book requested")
@@ -57,20 +51,20 @@ func (c Controller) GetBook(db *sql.DB) http.HandlerFunc {
 }
 
 // AddBook controller to add a book to db
-func (c Controller) AddBook(db *sql.DB) http.HandlerFunc {
+func (c Controller) AddBook() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		defer req.Body.Close()
 		var newBook models.BookSchema
 
 		json.NewDecoder(req.Body).Decode(&newBook)
 
-		newBook = bookRepo.AddBook(db, newBook)
+		newBook = bookRepo.AddBook(newBook)
 		config.RespondWithJSON(w, http.StatusCreated, newBook)
 	}
 }
 
 // UpdateBook controller to update book record on db
-func (c Controller) UpdateBook(db *sql.DB) http.HandlerFunc {
+func (c Controller) UpdateBook() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		defer req.Body.Close()
 		params := mux.Vars(req)
@@ -82,14 +76,14 @@ func (c Controller) UpdateBook(db *sql.DB) http.HandlerFunc {
 
 		json.NewDecoder(req.Body).Decode(&updateValues)
 
-		rowsUpdated := bookRepo.UpdateBook(db, updateValues, parsedID)
+		rowsUpdated := bookRepo.UpdateBook(updateValues, parsedID)
 
 		json.NewEncoder(w).Encode(rowsUpdated)
 	}
 }
 
 // RemoveBook controller to delete book from db
-func (c Controller) RemoveBook(db *sql.DB) http.HandlerFunc {
+func (c Controller) RemoveBook() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, req *http.Request) {
 		defer req.Body.Close()
@@ -98,7 +92,7 @@ func (c Controller) RemoveBook(db *sql.DB) http.HandlerFunc {
 		id, err := strconv.Atoi(params["id"])
 		config.LogFatal(err)
 
-		rowsDeleted := bookRepo.RemoveBook(db, id)
+		rowsDeleted := bookRepo.RemoveBook(id)
 
 		json.NewEncoder(w).Encode(rowsDeleted)
 	}

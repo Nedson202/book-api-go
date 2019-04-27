@@ -5,7 +5,13 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/subosito/gotenv"
 )
+
+func init() {
+	gotenv.Load()
+}
 
 // LogFatal to handle logging errors
 func LogFatal(err error) {
