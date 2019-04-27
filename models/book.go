@@ -7,6 +7,3 @@ type BookSchema struct {
 	Author string `json:"author"`
 	Year   string `json:"year"`
 }
-
-// Book slice
-var Book = []BookSchema{}
