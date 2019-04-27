@@ -23,3 +23,6 @@ func SetupDatabaseConnection() *sql.DB {
 
 	return db
 }
+
+// DB connection instance
+var DB = SetupDatabaseConnection()
