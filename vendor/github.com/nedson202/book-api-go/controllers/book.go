@@ -78,13 +78,7 @@ func (c Controller) UpdateBook() http.HandlerFunc {
 
 		rowsUpdated := bookRepo.UpdateBook(updateValues, parsedID)
 
-		if rowsUpdated == 1 {
-			config.RespondWithJSON(w, http.StatusOK,
-				config.Payload{Error: true, Message: "Book successfully updated"})
-		} else {
-			config.RespondWithError(w, http.StatusInternalServerError,
-				"An error occurred trying to update book")
-		}
+		json.NewEncoder(w).Encode(rowsUpdated)
 	}
 }
 

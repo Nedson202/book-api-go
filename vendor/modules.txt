@@ -1,10 +1,18 @@
+# github.com/gorilla/handlers v1.4.0
+github.com/gorilla/handlers
 # github.com/gorilla/mux v1.7.1
 github.com/gorilla/mux
 # github.com/lib/pq v1.1.0
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
-# github.com/nedson202/book-api-go v0.0.0-20190426104416-baa760bb4f73
+# github.com/nedson202/book-api-go v0.0.0-20190426113148-428ec46f50b9 => ./../book-api-go
+github.com/nedson202/book-api-go/config
+github.com/nedson202/book-api-go/database
+github.com/nedson202/book-api-go/driver
+github.com/nedson202/book-api-go/routes
 github.com/nedson202/book-api-go/models
+github.com/nedson202/book-api-go/repository/book
+github.com/nedson202/book-api-go/controllers
 # github.com/subosito/gotenv v1.1.1
 github.com/subosito/gotenv
