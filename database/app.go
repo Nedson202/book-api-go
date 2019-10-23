@@ -7,5 +7,4 @@ import (
 // MigrateDatabaseTables
 func MigrateDatabaseTables(db *sql.DB) {
 	CreateBookTable(db)
-	CreateUserTable(db)
 }
